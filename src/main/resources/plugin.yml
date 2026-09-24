@@ -1,0 +1,7 @@
+name: Middleware
+main: dev.senseitarzan.middleware.MiddlewarePlugin
+author: SenseiTarzan
+api: 3.0.4
+version: 1.0.0
+description: "Async Middleware system for PowerNukkitX"
+load: POSTWORLD

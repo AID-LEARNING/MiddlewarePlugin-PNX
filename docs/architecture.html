@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiddlewarePlugin - Visualisation de l'Exécution (Java 25 LTS)</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            themeVariables: {
+                darkMode: true,
+                background: '#0f172a',
+                primaryColor: '#3b82f6',
+                primaryTextColor: '#f8fafc',
+                primaryBorderColor: '#60a5fa',
+                lineColor: '#94a3b8',
+                secondaryColor: '#1e293b',
+                tertiaryColor: '#1e293b'
+            }
+        });
+    </script>
+    <style>
+        :root {
+            --bg-main: #0b0f19;
+            --bg-card: #131b2e;
+            --bg-card-hover: #1c2742;
+            --border-color: #233154;
+            --primary: #3b82f6;
+            --primary-glow: rgba(59, 130, 246, 0.25);
+            --accent: #10b981;
+            --accent-glow: rgba(16, 185, 129, 0.25);
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            font-family: var(--font-family);
+            line-height: 1.6;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 0.35rem 0.9rem;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.75rem;
+            background: linear-gradient(135deg, #ffffff 40%, #93c5fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.lead {
+            font-size: 1.15rem;
+            color: var(--text-muted);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Metrics / Pills */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 3rem;
+        }
+
+        .metric-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--primary);
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background-color: var(--primary);
+        }
+
+        .metric-card.accent::before { background-color: var(--accent); }
+        .metric-card.warning::before { background-color: var(--warning); }
+        .metric-card.purple::before { background-color: #a855f7; }
+
+        .metric-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.35rem;
+        }
+
+        .metric-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Section Cards */
+        .section-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .step-number {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            color: white;
+            font-weight: 700;
+            font-size: 1.1rem;
+            box-shadow: 0 0 10px var(--primary-glow);
+            flex-shrink: 0;
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            background: #090e1a;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            margin: 1.5rem 0;
+            overflow-x: auto;
+        }
+
+        /* Step cards list */
+        .steps-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .step-item {
+            background-color: #0b1120;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: border-color 0.2s;
+        }
+
+        .step-item:hover {
+            border-color: #3b82f6;
+        }
+
+        .step-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .step-item-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #60a5fa;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .step-item-tag {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            background: #1e293b;
+            color: #94a3b8;
+            font-family: var(--font-mono);
+        }
+
+        .step-item-tag.green { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+        .step-item-tag.purple { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+        .step-item-tag.amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+
+        pre {
+            background-color: #040711;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: #e2e8f0;
+            overflow-x: auto;
+            margin: 0.75rem 0;
+        }
+
+        code .keyword { color: #f43f5e; }
+        code .type { color: #38bdf8; }
+        code .method { color: #a78bfa; }
+        code .string { color: #34d399; }
+        code .comment { color: #64748b; font-style: italic; }
+
+        /* Comparison table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            padding: 1rem 1.25rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: #0b1120;
+            color: #94a3b8;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+        }
+
+        tr:hover td {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .check { color: #34d399; font-weight: bold; }
+        .cross { color: #f43f5e; font-weight: bold; }
+
+        footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="badge">Architecture & Cycle de Vie • Java 25 LTS</div>
+        <h1>Comment les Middlewares sont exécutés</h1>
+        <p class="lead">
+            Visualisation interactive et détaillée du pipeline d'interception asynchrone des paquets Bedrock sur PowerNukkitX.
+        </p>
+    </header>
+
+    <!-- Key Architectural Highlights -->
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <div class="metric-title">Interception Ciblée</div>
+            <div class="metric-value">Zéro Hook Global</div>
+            <div class="metric-desc">Seuls les paquets déclarés sont enveloppés dans <code>PacketHandlerRegistry</code>.</div>
+        </div>
+        <div class="metric-card accent">
+            <div class="metric-title">Propagation de Contexte</div>
+            <div class="metric-value">Java 25 ScopedValue</div>
+            <div class="metric-desc"><code>MiddlewareContext.current()</code> accessible partout sans fuite de mémoire.</div>
+        </div>
+        <div class="metric-card purple">
+            <div class="metric-title">Parallélisme Non-bloquant</div>
+            <div class="metric-value">Named Virtual Threads</div>
+            <div class="metric-desc">Threads <code>middleware-worker-#</code> dédiés pour vos requêtes I/O SQL et HTTP.</div>
+        </div>
+        <div class="metric-card warning">
+            <div class="metric-title">Gestion de Session</div>
+            <div class="metric-value">NetworkSession GC-Safe</div>
+            <div class="metric-desc">Suivi unitaire par joueur via <code>WeakIdentityHashMap</code> sans collisions de hash.</div>
+        </div>
+    </div>
+
+    <!-- Sequence Diagram -->
+    <div class="section-card">
+        <div class="section-header">
+            <div class="step-number">📊</div>
+            <div class="section-title">Diagramme de Séquence de Traitement</div>
+        </div>
+        <p style="color: var(--text-muted); margin-bottom: 1rem;">
+            Voici le cycle complet d'un paquet, de son arrivée sur l'EventLoop Netty jusqu'au traitement final par le serveur PowerNukkitX.
+        </p>
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Client as Joueur (Bedrock Client)
+    participant Netty as Thread Netty (EventLoop)
+    participant MPH as MiddlewarePacketHandler
+    participant MM as MiddlewareManager
+    participant Mid as Vos Middlewares (Virtual Threads)
+    participant Orig as OriginalHandler (PowerNukkitX)
+
+    Client->>Netty: Paquet Bedrock entrant (ex: LoginPacket, InteractPacket)
+    Netty->>MPH: handle(packet, holder, server)
+    MPH->>MM: executePipeline(context)
+    
+    Note over MM: 1. Récupère Globaux + NetworkSession<br/>2. Fusionne par Priorité (LOWEST -> MONITOR)<br/>3. Filtre les modes @Once
+    
+    loop Pour chaque middleware (en async)
+        MM->>Mid: ScopedValue.where(CURRENT, context).call(middleware::handle)
+        Mid-->>MM: CompletableFuture résolue
+    end
+    
+    alt Rejet ou Déconnexion
+        MM-->>MPH: CompletableFuture échouée (disconnect)
+        MPH->>Netty: Session déconnectée / Paquet jeté
+        Note over Orig: OriginalHandler N'EST PAS APPELÉ
+    else Succès de la chaîne
+        MM-->>MPH: CompletableFuture terminée
+        MPH->>Netty: runOnNetworkThread()
+        Netty->>Orig: originalHandler.handle(packet, holder, server)
+    end
+        </div>
+    </div>
+
+    <!-- Step by Step Walkthrough -->
+    <div class="section-card">
+        <div class="section-header">
+            <div class="step-number">🔍</div>
+            <div class="section-title">Le Pipeline en 5 Étapes Détaillées</div>
+        </div>
+
+        <div class="steps-container">
+            <!-- Step 1 -->
+            <div class="step-item">
+                <div class="step-item-header">
+                    <div class="step-item-title">
+                        <span>1. Interception Non-bloquante</span>
+                    </div>
+                    <span class="step-item-tag">MiddlewarePacketHandler.java</span>
+                </div>
+                <p style="color: var(--text-muted); margin-bottom: 0.5rem;">
+                    PowerNukkitX achemine le paquet vers <code>MiddlewarePacketHandler</code> (qui remplace l'original dans <code>PacketHandlerRegistry.MAP</code>).
+                    Si aucun middleware ne concerne ce paquet ou cette session, il passe <strong>directement</strong> à l'original.
+                </p>
+                <pre><code><span class="keyword">boolean</span> hasGlobal = manager.hasMiddlewares(packetClass);
+<span class="keyword">boolean</span> hasSession = session != <span class="keyword">null</span> && session.hasMiddlewares(packetClass);
+
+<span class="keyword">if</span> (!hasGlobal && !hasSession) {
+    originalHandler.handle(packet, holder, server); <span class="comment">// Passage immédiat sans overhead</span>
+    <span class="keyword">return</span>;
+}
+
+MiddlewareContext&lt;T&gt; context = <span class="keyword">new</span> MiddlewareContext&lt;&gt;(packet, holder, server, originalHandler);
+manager.executePipeline(context).whenComplete((_, throwable) -&gt; { ... });</code></pre>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="step-item">
+                <div class="step-item-header">
+                    <div class="step-item-title">
+                        <span>2. Fusion Globale + Session & Tri par Priorités</span>
+                    </div>
+                    <span class="step-item-tag purple">MiddlewareManager.java</span>
+                </div>
+                <p style="color: var(--text-muted); margin-bottom: 0.5rem;">
+                    Le gestionnaire fusionne la liste des middlewares globaux et ceux attachés à la <code>NetworkSession</code> du joueur en un temps $O(N + M)$ respectant l'ordre strict des 6 niveaux de priorité :
+                </p>
+                <pre><code>LOWEST (0) ➔ LOW (1) ➔ NORMAL (2) ➔ HIGH (3) ➔ HIGHEST (4) ➔ MONITOR (5)</code></pre>
+                <p style="color: var(--text-muted); margin-top: 0.5rem;">
+                    Puis, chaque middleware est validé : état de session (<code>SessionState</code>), filtrage de <code>NetworkHandler</code>, et vérification du mode <code>@Once</code> via switch expression.
+                </p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="step-item">
+                <div class="step-item-header">
+                    <div class="step-item-title">
+                        <span>3. Chaînage Asynchrone & Contexte Java 25</span>
+                    </div>
+                    <span class="step-item-tag green">ScopedValue & CompletableFuture</span>
+                </div>
+                <p style="color: var(--text-muted); margin-bottom: 0.5rem;">
+                    Chaque middleware est chaîné via <code>chain.thenCompose(...)</code>. Le contexte est injecté via <code>ScopedValue</code> de Java 25, permettant à n'importe quel service d'appeler <code>MiddlewareContext.current()</code> :
+                </p>
+                <pre><code>chain = chain.thenCompose(_ -&gt; {
+    <span class="comment">// Injection du contexte Java 25 pour toute la durée de l'exécution</span>
+    <span class="keyword">return</span> ScopedValue.where(MiddlewareContext.CURRENT, context)
+            .call(() -&gt; middleware.handle(context))
+            .thenRun(() -&gt; {
+                <span class="comment">// Marque exécuté pour la session si @Once</span>
+                <span class="keyword">if</span> (middleware.getExecutionMode() == MiddlewareExecutionMode.ONCE) {
+                    session.markExecuted(middleware);
+                }
+            });
+});</code></pre>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="step-item">
+                <div class="step-item-header">
+                    <div class="step-item-title">
+                        <span>4. Exécution I/O sur Virtual Threads Dédiés</span>
+                    </div>
+                    <span class="step-item-tag amber">Thread.ofVirtual()</span>
+                </div>
+                <p style="color: var(--text-muted); margin-bottom: 0.5rem;">
+                    Vos middlewares peuvent effectuer des requêtes bloquantes (SQL, Redis, API HTTP) en les soumettant au <code>virtualExecutor</code>. Le serveur ne subit <strong>aucun gel</strong> de tick ni de socket :
+                </p>
+                <pre><code><span class="keyword">return</span> CompletableFuture.runAsync(() -&gt; {
+    <span class="comment">// Exécuté sur 'middleware-worker-1' (Virtual Thread)</span>
+    <span class="keyword">boolean</span> isBanned = database.checkBan(context.getAddress());
+    <span class="keyword">if</span> (isBanned) {
+        context.disconnect(<span class="string">"Vous êtes banni !"</span>);
+        <span class="keyword">throw new</span> IllegalStateException(<span class="string">"Player is banned"</span>);
+    }
+}, MiddlewareManager.getInstance().getVirtualExecutor());</code></pre>
+            </div>
+
+            <!-- Step 5 -->
+            <div class="step-item">
+                <div class="step-item-header">
+                    <div class="step-item-title">
+                        <span>5. Résolution Finale & Retour sur Netty</span>
+                    </div>
+                    <span class="step-item-tag">whenComplete()</span>
+                </div>
+                <p style="color: var(--text-muted); margin-bottom: 0.5rem;">
+                    Lorsque la chaîne de futures se termine :
+                </p>
+                <ul style="color: var(--text-muted); padding-left: 1.5rem; margin-bottom: 0.75rem;">
+                    <li><strong>Si échec ou kick :</strong> Le paquet est détruit, la session est fermée si demandé, et le handler original de PowerNukkitX <em>n'est jamais appelé</em>.</li>
+                    <li><strong>Si succès :</strong> Le paquet est renvoyé sur l'EventLoop Netty pour être traité par le <code>originalHandler</code> officiel de PowerNukkitX.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Architectural Comparison -->
+    <div class="section-card">
+        <div class="section-header">
+            <div class="step-number">⚖️</div>
+            <div class="section-title">Comparaison Architecturale : PocketMine-MP vs Notre Solution Java 25</div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Fonctionnalité</th>
+                    <th>PocketMine-MP (PHP)</th>
+                    <th>Notre Solution (PowerNukkitX / Java 25)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Point d'accroche</strong></td>
+                    <td><code>DataPacketReceiveEvent</code> (Annulation d'événement)</td>
+                    <td><span class="check">✔</span> Décorateur <code>PacketHandlerRegistry</code> (Natif)</td>
+                </tr>
+                <tr>
+                    <td><strong>Interception Pré-Login (`LoginPacket`)</strong></td>
+                    <td><span class="check">✔</span> Possible (Session fournie dans l'event)</td>
+                    <td><span class="check">✔</span> 100% Fonctionnel (Inaccessible via événements PNX)</td>
+                </tr>
+                <tr>
+                    <td><strong>Surcharge sur les paquets non utilisés</strong></td>
+                    <td><span class="cross">✘</span> Déclenché pour absolument TOUS les paquets</td>
+                    <td><span class="check">✔</span> <strong>Zéro overhead</strong> : seuls les paquets ciblés sont hookés</td>
+                </tr>
+                <tr>
+                    <td><strong>Middlewares par Session Joueur</strong></td>
+                    <td><span class="cross">✘</span> Non (Global uniquement)</td>
+                    <td><span class="check">✔</span> <code>NetworkSession.addMiddleware()</code> individuel</td>
+                </tr>
+                <tr>
+                    <td><strong>Gestion de la Concurrence</strong></td>
+                    <td>Générateurs / Fibers (Mono-threadé)</td>
+                    <td><span class="check">✔</span> <strong>Virtual Threads & Scoped Values</strong></td>
+                </tr>
+                <tr>
+                    <td><strong>Détection automatique du paquet</strong></td>
+                    <td><span class="cross">✘</span> Méthode manuelle <code>onDetectPacket()</code></td>
+                    <td><span class="check">✔</span> <strong>Automatique</strong> via template générique <code>&lt;T&gt;</code></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <footer>
+        MiddlewarePlugin • Conçu pour PowerNukkitX &amp; Java 25 LTS • D'après le projet original de <a href="https://github.com/AID-LEARNING/MiddlewarePlugin" target="_blank" style="color: #60a5fa; text-decoration: underline;">SenseiTarzan (AID-LEARNING)</a> • Porté &amp; optimisé avec assistance IA
+    </footer>
+</div>
+
+</body>
+</html>

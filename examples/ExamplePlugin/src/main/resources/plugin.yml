@@ -1,0 +1,8 @@
+name: ExamplePlugin
+version: 1.0.0
+main: dev.senseitarzan.example.ExamplePlugin
+api: ["1.0.0", "2.0.0", "3.0.0"]
+depend:
+  - MiddlewarePlugin
+author: SenseiTarzan
+description: Example PowerNukkitX plugin demonstrating asynchronous packet middlewares (global and per-NetworkSession)
